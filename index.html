@@ -5,32 +5,77 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BP Media - Login</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-.box { background: #111; padding: 40px; border-radius: 12px; width: 320px; border: 1px solid #222; }
-    h2 { text-align: center; margin-bottom: 24px; }
-    input { width: 100%; padding: 12px; margin: 8px 0; background: #222; border: 1px solid #333; color: #fff; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-    button { width: 100%; padding: 12px; margin-top: 12px; background: #0095f6; border: none; color: #fff; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 16px; }
-    button:disabled { background: #00376b; cursor: not-allowed; }
-.erro { color: #ff4d4d; font-size: 14px; margin-top: 12px; text-align: center; min-height: 20px; }
-.toggle { color: #0095f6; text-align: center; margin-top: 20px; cursor: pointer; font-size: 14px; }
-.logo { text-align: center; font-size: 32px; font-weight: 800; margin-bottom: 20px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #000; 
+      color: #fff; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      min-height: 100vh; 
+    }
+    .box { 
+      width: 90%; 
+      max-width: 350px; 
+      background: #000; 
+      border: 1px solid #262626; 
+      border-radius: 1px; 
+      padding: 40px; 
+      text-align: center; 
+    }
+    .logo { 
+      font-size: 45px; 
+      font-weight: 800; 
+      margin-bottom: 30px; 
+      font-family: 'Billabong', cursive; 
+    }
+    input { 
+      width: 100%; 
+      padding: 9px; 
+      margin: 6px 0; 
+      background: #121212; 
+      border: 1px solid #262626; 
+      border-radius: 3px; 
+      color: #fff; 
+      font-size: 12px; 
+    }
+    input:focus { outline: none; border-color: #8e8e8e; }
+    button { 
+      width: 100%; 
+      padding: 7px; 
+      margin-top: 12px; 
+      background: #0095f6; 
+      border: none; 
+      border-radius: 8px; 
+      color: #fff; 
+      font-weight: 600; 
+      font-size: 14px; 
+      cursor: pointer; 
+    }
+    button:disabled { opacity: 0.3; }
+    .troca { 
+      margin-top: 20px; 
+      font-size: 14px; 
+      color: #8e8e8e; 
+    }
+    .troca span { color: #0095f6; font-weight: 600; cursor: pointer; }
+    .erro { color: #ed4956; font-size: 12px; margin-top: 10px; display: none; }
   </style>
 </head>
 <body>
   <div class="box">
-    <div class="logo">BP</div>
-    <h2 id="titulo">Entrar</h2>
-    <input type="email" id="email" placeholder="Email">
-    <input type="password" id="senha" placeholder="Senha">
-    <button id="btnPrincipal">Entrar</button>
-    <div class="erro" id="erro"></div>
-    <div class="toggle" id="toggle">Criar conta</div>
+    <h1 class="logo">bp</h1>
+    <input type="email" id="email" placeholder="Email" autocomplete="email">
+    <input type="password" id="senha" placeholder="Senha" autocomplete="current-password">
+    <button id="btn">Entrar</button>
+    <p class="erro" id="erro"></p>
+    <p class="troca">Não tem conta? <span id="link">Cadastre-se</span></p>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB7KJ9AjbvvTxFT8HS3jQTWe2WnGnj8b9U",
@@ -44,68 +89,63 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
 
+    const email = document.getElementById('email');
+    const senha = document.getElementById('senha');
+    const btn = document.getElementById('btn');
+    const link = document.getElementById('link');
+    const erro = document.getElementById('erro');
+    const troca = document.querySelector('.troca');
+    
+    let modoLogin = true;
+    let jaRedirecionou = false;
+
+    // ANTI-LOOP: Só redireciona 1 vez quando confirmar que tá logado
     onAuthStateChanged(auth, (user) => {
-      if (user) window.location.href = '/feed.html';
+      if (user && !jaRedirecionou) {
+        jaRedirecionou = true;
+        window.location.replace('/feed.html');
+      }
     });
 
-    let modoLogin = true;
-    const titulo = document.getElementById('titulo');
-    const btnPrincipal = document.getElementById('btnPrincipal');
-    const toggle = document.getElementById('toggle');
-    const erroDiv = document.getElementById('erro');
-
-    toggle.onclick = () => {
-      modoLogin =!modoLogin;
-      titulo.innerText = modoLogin? 'Entrar' : 'Criar conta';
-      btnPrincipal.innerText = modoLogin? 'Entrar' : 'Cadastrar';
-      toggle.innerText = modoLogin? 'Criar conta' : 'Já tenho conta';
-      erroDiv.innerText = '';
+    link.onclick = () => {
+      modoLogin = !modoLogin;
+      btn.textContent = modoLogin ? 'Entrar' : 'Cadastrar';
+      troca.innerHTML = modoLogin 
+        ? 'Não tem conta? <span id="link">Cadastre-se</span>' 
+        : 'Tem conta? <span id="link">Entre</span>';
+      document.getElementById('link').onclick = link.onclick;
+      erro.style.display = 'none';
     };
 
-    btnPrincipal.onclick = async () => {
-      const email = document.getElementById('email').value.trim();
-      const senha = document.getElementById('senha').value;
-      erroDiv.innerText = '';
-
-      if (!email ||!senha) {
-        erroDiv.innerText = 'Preenche email e senha';
-        return;
-      }
-      if (senha.length < 6) {
-        erroDiv.innerText = 'Senha precisa ter 6+ caracteres';
-        return;
-      }
-
-      btnPrincipal.disabled = true;
-      btnPrincipal.innerText = 'Aguarde...';
-
+    btn.onclick = async () => {
+      erro.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Aguarde...';
+      
       try {
         if (modoLogin) {
-          await signInWithEmailAndPassword(auth, email, senha);
+          await signInWithEmailAndPassword(auth, email.value, senha.value);
         } else {
-          const cred = await createUserWithEmailAndPassword(auth, email, senha);
-          await setDoc(doc(db, "usuarios", cred.user.uid), {
-            email: email,
-            nome: email.split('@')[0],
-            bio: '',
-            foto: '',
-            criadoEm: new Date()
-          });
+          await createUserWithEmailAndPassword(auth, email.value, senha.value);
         }
-      } catch (error) {
-        if (error.code === 'auth/invalid-credential') erroDiv.innerText = 'Email ou senha incorretos';
-        else if (error.code === 'auth/email-already-in-use') erroDiv.innerText = 'Esse email já existe. Faz login';
-        else if (error.code === 'auth/invalid-email') erroDiv.innerText = 'Email inválido';
-        else if (error.code === 'auth/weak-password') erroDiv.innerText = 'Senha muito fraca';
-        else if (error.code === 'auth/unauthorized-domain') erroDiv.innerText = 'Domínio não autorizado no Firebase';
-        else erroDiv.innerText = 'Erro: ' + error.message;
-      } finally {
-        btnPrincipal.disabled = false;
-        btnPrincipal.innerText = modoLogin? 'Entrar' : 'Cadastrar';
+        // Não precisa redirecionar aqui, o onAuthStateChanged faz isso
+      } catch (e) {
+        erro.textContent = traduzErro(e.code);
+        erro.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = modoLogin ? 'Entrar' : 'Cadastrar';
       }
     };
+
+    function traduzErro(code) {
+      if (code === 'auth/invalid-email') return 'Email inválido';
+      if (code === 'auth/user-not-found') return 'Usuário não encontrado';
+      if (code === 'auth/wrong-password') return 'Senha incorreta';
+      if (code === 'auth/email-already-in-use') return 'Email já cadastrado';
+      if (code === 'auth/weak-password') return 'Senha deve ter 6+ caracteres';
+      return 'Erro ao fazer login';
+    }
   </script>
 </body>
 </html>
