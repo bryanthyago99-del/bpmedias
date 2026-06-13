@@ -1,150 +1,117 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BP Media</title>
+  <title>Feed</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-   .topo {
-      position: fixed;
-      top: 0;
-      width: 100%;
-      background: #000;
-      border-bottom: 1px solid #262626;
-      padding: 12px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 10;
-    }
-   .logo { font-size: 24px; font-weight: 800; }
-   .btn-sair { background: none; border: none; color: #0095f6; font-weight: 600; }
-   .feed { padding-top: 60px; padding-bottom: 80px; }
-   .post { border-bottom: 1px solid #262626; }
-   .post img { width: 100%; display: block; }
-   .post-info { padding: 12px 16px; }
-   .post-email { font-weight: 600; font-size: 14px; }
-   .btn-add {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: #0095f6;
-      border: none;
-      color: #fff;
-      font-size: 30px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    }
-   .vazio { text-align: center; padding: 100px 20px; color: #8e8e8e; }
-    #inputFile { display: none; }
+    body { font-family: Arial; max-width: 600px; margin: 20px auto; padding: 10px; background: #fafafa; }
+   .post-box { background: white; padding: 15px; border: 1px solid #dbdbdb; margin-bottom: 20px; }
+    input, textarea, button { width: 100%; margin: 5px 0; padding: 10px; box-sizing: border-box; }
+    button { background: #0095f6; color: white; border: none; font-weight: bold; cursor: pointer; }
+   .post { background: white; border: 1px solid #dbdbdb; margin: 20px 0; }
+   .post img { width: 100%; }
+   .post p { padding: 10px; margin: 0; }
   </style>
 </head>
 <body>
-  <div class="topo">
-    <h1 class="logo">bp</h1>
-    <button class="btn-sair" id="btnSair">Sair</button>
+
+  <div class="post-box">
+    <h3>Criar Post</h3>
+    <input type="file" id="fileInput" accept="image/*">
+    <textarea id="legenda" placeholder="Escreva uma legenda..." rows="3"></textarea>
+    <button onclick="postarFoto()">Postar</button>
   </div>
 
-  <div class="feed" id="feed">
-    <div class="vazio" id="vazio">Nenhum post ainda.<br>Clica no ⊕ pra postar.</div>
-  </div>
-
-  <input type="file" id="inputFile" accept="image/*" capture="environment">
-  <button class="btn-add" id="btnAdd">⊕</button>
+  <div id="feed"></div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+    // COLA TUA CONFIG DO FIREBASE AQUI
     const firebaseConfig = {
-      apiKey: "AIzaSyB7KJ9AjbvvTxFT8HS3jQTWe2WnGnj8b9U",
-      authDomain: "bpmedia-a2f8e.firebaseapp.com",
-      projectId: "bpmedia-a2f8e",
-      storageBucket: "bpmedia-a2f8e.firebasestorage.app",
-      messagingSenderId: "126820217826",
-      appId: "1:126820217826:web:7b6e5120cbc314c2f37fbb"
+      apiKey: "SUA_API_KEY_FIREBASE",
+      authDomain: "SEU-PROJETO.firebaseapp.com",
+      projectId: "SEU-PROJETO",
+      storageBucket: "SEU-PROJETO.appspot.com",
+      messagingSenderId: "123456",
+      appId: "1:123456:web:abc123"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const storage = getStorage(app);
 
-    const btnSair = document.getElementById('btnSair');
-    const btnAdd = document.getElementById('btnAdd');
-    const inputFile = document.getElementById('inputFile');
-    const feed = document.getElementById('feed');
-    const vazio = document.getElementById('vazio');
-
-    let usuarioAtual = null;
+    // API DO IMGBB - JÁ COLOQUEI TUA CHAVE
+    const IMGBB_API_KEY = "30b0e6480c21675d4e20177822104a59";
 
     onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        window.location.replace('/');
-      } else {
-        usuarioAtual = user;
-        carregaFeed();
-      }
+      if (!user) window.location.href = "index.html";
+      else carregarPosts();
     });
 
-    btnSair.onclick = () => signOut(auth);
+    window.postarFoto = async () => {
+      const file = document.querySelector('#fileInput').files[0];
+      const legenda = document.querySelector('#legenda').value;
+      const user = auth.currentUser;
 
-    btnAdd.onclick = () => inputFile.click();
+      if (!file) return alert("Escolhe uma foto primeiro");
+      if (!user) return alert("Você não tá logado");
 
-    inputFile.onchange = async (e) => {
-      const arquivo = e.target.files[0];
-      if (!arquivo) return;
-
-      btnAdd.textContent = '...';
-      btnAdd.disabled = true;
+      document.querySelector('button').innerText = "Postando...";
 
       try {
-        const nomeArquivo = Date.now() + '_' + arquivo.name;
-        const storageRef = ref(storage, 'posts/' + nomeArquivo);
-        await uploadBytes(storageRef, arquivo);
-        const url = await getDownloadURL(storageRef);
-
-        await addDoc(collection(db, 'posts'), {
-          url: url,
-          email: usuarioAtual.email,
-          uid: usuarioAtual.uid,
-          criadoEm: serverTimestamp()
+        // 1. Converte pra base64
+        const base64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result.split(',')[1]);
+          reader.readAsDataURL(file);
         });
+
+        // 2. Manda pro ImgBB
+        const form = new FormData();
+        form.append('image', base64);
+        const upload = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+          method: 'POST',
+          body: form
+        });
+        const data = await upload.json();
+        const url = data.data.url;
+
+        // 3. Salva no Firestore
+        await addDoc(collection(db, "posts"), {
+          imageUrl: url,
+          caption: legenda,
+          userId: user.uid,
+          userEmail: user.email,
+          createdAt: serverTimestamp()
+        });
+
+        document.querySelector('#fileInput').value = "";
+        document.querySelector('#legenda').value = "";
+        alert("Postado com sucesso!");
       } catch (e) {
-        alert('Erro ao postar: ' + e.message);
+        alert("Erro: " + e.message);
       }
+      document.querySelector('button').innerText = "Postar";
+    }
 
-      btnAdd.textContent = '⊕';
-      btnAdd.disabled = false;
-      inputFile.value = '';
-    };
-
-    function carregaFeed() {
-      const q = query(collection(db, 'posts'), orderBy('criadoEm', 'desc'));
+    function carregarPosts() {
+      const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
       onSnapshot(q, (snapshot) => {
-        if (snapshot.empty) {
-          vazio.style.display = 'block';
-          return;
-        }
-        vazio.style.display = 'none';
-        feed.innerHTML = '';
+        const feed = document.querySelector('#feed');
+        feed.innerHTML = "";
         snapshot.forEach((doc) => {
           const post = doc.data();
-          const div = document.createElement('div');
-          div.className = 'post';
-          div.innerHTML = `
-            <img src="${post.url}" alt="post">
-            <div class="post-info">
-              <div class="post-email">${post.email}</div>
+          feed.innerHTML += `
+            <div class="post">
+              <p><b>${post.userEmail}</b></p>
+              <img src="${post.imageUrl}">
+              <p>${post.caption}</p>
             </div>
           `;
-          feed.appendChild(div);
         });
       });
     }
