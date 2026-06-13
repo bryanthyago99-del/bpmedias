@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BP Media - Login</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+.box { background: #111; padding: 40px; border-radius: 12px; width: 320px; border: 1px solid #222; }
+    h2 { text-align: center; margin-bottom: 24px; }
+    input { width: 100%; padding: 12px; margin: 8px 0; background: #222; border: 1px solid #333; color: #fff; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+    button { width: 100%; padding: 12px; margin-top: 12px; background: #0095f6; border: none; color: #fff; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 16px; }
+    button:disabled { background: #00376b; cursor: not-allowed; }
+.erro { color: #ff4d4d; font-size: 14px; margin-top: 12px; text-align: center; min-height: 20px; }
+.toggle { color: #0095f6; text-align: center; margin-top: 20px; cursor: pointer; font-size: 14px; }
+.logo { text-align: center; font-size: 32px; font-weight: 800; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="logo">BP</div>
+    <h2 id="titulo">Entrar</h2>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="senha" placeholder="Senha">
+    <button id="btnPrincipal">Entrar</button>
+    <div class="erro" id="erro"></div>
+    <div class="toggle" id="toggle">Criar conta</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB7KJ9AjbvvTxFT8HS3jQTWe2WnGnj8b9U",
+      authDomain: "bpmedia-a2f8e.firebaseapp.com",
+      projectId: "bpmedia-a2f8e",
+      storageBucket: "bpmedia-a2f8e.firebasestorage.app",
+      messagingSenderId: "126820217826",
+      appId: "1:126820217826:web:7b6e5120cbc314c2f37fbb",
+      measurementId: "G-M30RV4WHC7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) window.location.href = '/feed.html';
+    });
+
+    let modoLogin = true;
+    const titulo = document.getElementById('titulo');
+    const btnPrincipal = document.getElementById('btnPrincipal');
+    const toggle = document.getElementById('toggle');
+    const erroDiv = document.getElementById('erro');
+
+    toggle.onclick = () => {
+      modoLogin =!modoLogin;
+      titulo.innerText = modoLogin? 'Entrar' : 'Criar conta';
+      btnPrincipal.innerText = modoLogin? 'Entrar' : 'Cadastrar';
+      toggle.innerText = modoLogin? 'Criar conta' : 'Já tenho conta';
+      erroDiv.innerText = '';
+    };
+
+    btnPrincipal.onclick = async () => {
+      const email = document.getElementById('email').value.trim();
+      const senha = document.getElementById('senha').value;
+      erroDiv.innerText = '';
+
+      if (!email ||!senha) {
+        erroDiv.innerText = 'Preenche email e senha';
+        return;
+      }
+      if (senha.length < 6) {
+        erroDiv.innerText = 'Senha precisa ter 6+ caracteres';
+        return;
+      }
+
+      btnPrincipal.disabled = true;
+      btnPrincipal.innerText = 'Aguarde...';
+
+      try {
+        if (modoLogin) {
+          await signInWithEmailAndPassword(auth, email, senha);
+        } else {
+          const cred = await createUserWithEmailAndPassword(auth, email, senha);
+          await setDoc(doc(db, "usuarios", cred.user.uid), {
+            email: email,
+            nome: email.split('@')[0],
+            bio: '',
+            foto: '',
+            criadoEm: new Date()
+          });
+        }
+      } catch (error) {
+        if (error.code === 'auth/invalid-credential') erroDiv.innerText = 'Email ou senha incorretos';
+        else if (error.code === 'auth/email-already-in-use') erroDiv.innerText = 'Esse email já existe. Faz login';
+        else if (error.code === 'auth/invalid-email') erroDiv.innerText = 'Email inválido';
+        else if (error.code === 'auth/weak-password') erroDiv.innerText = 'Senha muito fraca';
+        else if (error.code === 'auth/unauthorized-domain') erroDiv.innerText = 'Domínio não autorizado no Firebase';
+        else erroDiv.innerText = 'Erro: ' + error.message;
+      } finally {
+        btnPrincipal.disabled = false;
+        btnPrincipal.innerText = modoLogin? 'Entrar' : 'Cadastrar';
+      }
+    };
+  </script>
+</body>
+</html>
