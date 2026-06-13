@@ -3,74 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BP Media - Login</title>
+  <title>BP Media</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
       background: #000; 
       color: #fff; 
       display: flex; 
       justify-content: center; 
       align-items: center; 
       min-height: 100vh; 
+      padding: 20px;
     }
-    .box { 
-      width: 90%; 
-      max-width: 350px; 
-      background: #000; 
-      border: 1px solid #262626; 
-      border-radius: 1px; 
-      padding: 40px; 
-      text-align: center; 
-    }
-    .logo { 
-      font-size: 45px; 
-      font-weight: 800; 
-      margin-bottom: 30px; 
-      font-family: 'Billabong', cursive; 
-    }
+    .box { width: 100%; max-width: 350px; text-align: center; }
+    .logo { font-size: 45px; font-weight: 800; margin-bottom: 30px; }
     input { 
       width: 100%; 
-      padding: 9px; 
+      padding: 12px; 
       margin: 6px 0; 
       background: #121212; 
       border: 1px solid #262626; 
-      border-radius: 3px; 
-      color: #fff; 
-      font-size: 12px; 
-    }
-    input:focus { outline: none; border-color: #8e8e8e; }
-    button { 
-      width: 100%; 
-      padding: 7px; 
-      margin-top: 12px; 
-      background: #0095f6; 
-      border: none; 
       border-radius: 8px; 
       color: #fff; 
+      font-size: 14px; 
+    }
+    button { 
+      width: 100%; 
+      padding: 12px; 
+      margin-top: 8px; 
+      border: none; 
+      border-radius: 8px; 
       font-weight: 600; 
       font-size: 14px; 
       cursor: pointer; 
     }
-    button:disabled { opacity: 0.3; }
-    .troca { 
-      margin-top: 20px; 
-      font-size: 14px; 
-      color: #8e8e8e; 
-    }
-    .troca span { color: #0095f6; font-weight: 600; cursor: pointer; }
-    .erro { color: #ed4956; font-size: 12px; margin-top: 10px; display: none; }
+    button:disabled { opacity: 0.4; }
+    .btn-entrar { background: #fff; color: #000; }
+    .btn-criar { background: #262626; color: #fff; margin-top: 12px; }
+    .erro { color: #ed4956; font-size: 12px; margin-top: 15px; min-height: 15px; }
   </style>
 </head>
 <body>
   <div class="box">
     <h1 class="logo">bp</h1>
-    <input type="email" id="email" placeholder="Email" autocomplete="email">
-    <input type="password" id="senha" placeholder="Senha" autocomplete="current-password">
-    <button id="btn">Entrar</button>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="senha" placeholder="Senha">
+    <button class="btn-entrar" id="btnEntrar">Entrar</button>
+    <button class="btn-criar" id="btnCriar">Criar conta</button>
     <p class="erro" id="erro"></p>
-    <p class="troca">Não tem conta? <span id="link">Cadastre-se</span></p>
   </div>
 
   <script type="module">
@@ -83,8 +64,7 @@
       projectId: "bpmedia-a2f8e",
       storageBucket: "bpmedia-a2f8e.firebasestorage.app",
       messagingSenderId: "126820217826",
-      appId: "1:126820217826:web:7b6e5120cbc314c2f37fbb",
-      measurementId: "G-M30RV4WHC7"
+      appId: "1:126820217826:web:7b6e5120cbc314c2f37fbb"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -92,15 +72,11 @@
 
     const email = document.getElementById('email');
     const senha = document.getElementById('senha');
-    const btn = document.getElementById('btn');
-    const link = document.getElementById('link');
+    const btnEntrar = document.getElementById('btnEntrar');
+    const btnCriar = document.getElementById('btnCriar');
     const erro = document.getElementById('erro');
-    const troca = document.querySelector('.troca');
-    
-    let modoLogin = true;
-    let jaRedirecionou = false;
 
-    // ANTI-LOOP: Só redireciona 1 vez quando confirmar que tá logado
+    let jaRedirecionou = false;
     onAuthStateChanged(auth, (user) => {
       if (user && !jaRedirecionou) {
         jaRedirecionou = true;
@@ -108,33 +84,29 @@
       }
     });
 
-    link.onclick = () => {
-      modoLogin = !modoLogin;
-      btn.textContent = modoLogin ? 'Entrar' : 'Cadastrar';
-      troca.innerHTML = modoLogin 
-        ? 'Não tem conta? <span id="link">Cadastre-se</span>' 
-        : 'Tem conta? <span id="link">Entre</span>';
-      document.getElementById('link').onclick = link.onclick;
-      erro.style.display = 'none';
-    };
-
-    btn.onclick = async () => {
-      erro.style.display = 'none';
-      btn.disabled = true;
-      btn.textContent = 'Aguarde...';
-      
+    btnEntrar.onclick = async () => {
+      erro.textContent = '';
+      btnEntrar.textContent = 'Entrando...';
+      btnEntrar.disabled = true;
       try {
-        if (modoLogin) {
-          await signInWithEmailAndPassword(auth, email.value, senha.value);
-        } else {
-          await createUserWithEmailAndPassword(auth, email.value, senha.value);
-        }
-        // Não precisa redirecionar aqui, o onAuthStateChanged faz isso
+        await signInWithEmailAndPassword(auth, email.value, senha.value);
       } catch (e) {
         erro.textContent = traduzErro(e.code);
-        erro.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = modoLogin ? 'Entrar' : 'Cadastrar';
+        btnEntrar.textContent = 'Entrar';
+        btnEntrar.disabled = false;
+      }
+    };
+
+    btnCriar.onclick = async () => {
+      erro.textContent = '';
+      btnCriar.textContent = 'Criando...';
+      btnCriar.disabled = true;
+      try {
+        await createUserWithEmailAndPassword(auth, email.value, senha.value);
+      } catch (e) {
+        erro.textContent = traduzErro(e.code);
+        btnCriar.textContent = 'Criar conta';
+        btnCriar.disabled = false;
       }
     };
 
@@ -142,9 +114,10 @@
       if (code === 'auth/invalid-email') return 'Email inválido';
       if (code === 'auth/user-not-found') return 'Usuário não encontrado';
       if (code === 'auth/wrong-password') return 'Senha incorreta';
+      if (code === 'auth/invalid-credential') return 'Email ou senha incorretos';
       if (code === 'auth/email-already-in-use') return 'Email já cadastrado';
       if (code === 'auth/weak-password') return 'Senha deve ter 6+ caracteres';
-      return 'Erro ao fazer login';
+      return 'Erro. Tenta de novo';
     }
   </script>
 </body>
